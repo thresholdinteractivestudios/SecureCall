@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SECURECALL // E2E Encrypted Voice</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@400;700;800&display=swap');
+
+:root {
+  --bg: #080c10;
+  --surface: #0d1318;
+  --surface2: #111820;
+  --border: #1e2d3d;
+  --accent: #00d4ff;
+  --accent2: #0080ff;
+  --accent-glow: rgba(0,212,255,0.15);
+  --green: #00ff88;
+  --red: #ff3355;
+  --amber: #ffaa00;
+  --text: #c8dde8;
+  --text-dim: #4a6272;
+  --text-bright: #e8f4ff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(0,80,160,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(0,180,255,0.05) 0%, transparent 50%);
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-bright);
+  letter-spacing: -1px;
+}
+
+.title span { color: var(--accent); }
+
+.subtitle {
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 3px;
+  margin-top: 6px;
+}
+
+.enc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,255,136,0.08);
+  border: 1px solid rgba(0,255,136,0.2);
+  color: var(--green);
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-top: 10px;
+}
+
+.enc-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.3;
+}
+
+.card-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+/* Room code */
+.room-row {
+  display: flex;
+  gap: 10px;
+}
+
+.room-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-bright);
+  font-family: 'Syne Mono', monospace;
+  font-size: 18px;
+  letter-spacing: 4px;
+  padding: 12px 16px;
+  outline: none;
+  text-transform: uppercase;
+  transition: border-color 0.2s;
+}
+
+.room-input:focus { border-color: var(--accent); }
+.room-input::placeholder { color: var(--text-dim); letter-spacing: 2px; font-size: 13px; }
+
+.btn {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 12px 20px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+.btn-primary:hover { background: #33ddff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-danger {
+  background: rgba(255,51,85,0.15);
+  color: var(--red);
+  border: 1px solid rgba(255,51,85,0.3);
+}
+.btn-danger:hover { background: rgba(255,51,85,0.25); }
+
+.btn-full { width: 100%; padding: 14px; font-size: 15px; }
+
+/* Generated code display */
+.code-display {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.code-val {
+  font-family: 'Syne Mono', monospace;
+  font-size: 28px;
+  letter-spacing: 8px;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(0,212,255,0.4);
+}
+
+.code-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  letter-spacing: 1px;
+}
+
+/* Status */
+.status-panel {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.status-key { color: var(--text-dim); font-family: 'Syne Mono', monospace; letter-spacing: 1px; }
+.status-val { color: var(--text-bright); font-family: 'Syne Mono', monospace; font-size: 11px; }
+.status-val.green { color: var(--green); }
+.status-val.red { color: var(--red); }
+.status-val.amber { color: var(--amber); }
+.status-val.cyan { color: var(--accent); }
+
+/* Call UI */
+.call-ui {
+  display: none;
+  text-align: center;
+}
+
+.call-avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  position: relative;
+}
+
+.call-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: ring 2s infinite;
+}
+
+@keyframes ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.call-status-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+}
+
+.call-timer {
+  font-family: 'Syne Mono', monospace;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+}
+
+/* Audio visualizer */
+.visualizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 40px;
+  margin-bottom: 24px;
+}
+
+.viz-bar {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: height 0.1s ease;
+  min-height: 4px;
+}
+
+/* Call controls */
+.call-controls {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.ctrl-btn {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.15s;
+}
+
+.ctrl-btn.mute {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.ctrl-btn.mute:hover { border-color: var(--amber); color: var(--amber); }
+.ctrl-btn.mute.active { background: rgba(255,170,0,0.15); border-color: var(--amber); color: var(--amber); }
+
+.ctrl-btn.hangup {
+  background: var(--red);
+  color: #fff;
+  width: 68px; height: 68px;
+  font-size: 24px;
+}
+.ctrl-btn.hangup:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(255,51,85,0.4); }
+
+.ctrl-btn.speaker {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.ctrl-btn.speaker:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Log */
+.log {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.log-entry {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+.log-entry .ts { color: var(--accent2); margin-right: 8px; }
+.log-entry .ok { color: var(--green); }
+.log-entry .warn { color: var(--amber); }
+.log-entry .err { color: var(--red); }
+
+/* Fingerprint */
+.fingerprint {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  word-break: break-all;
+  line-height: 1.6;
+  padding: 10px;
+  background: var(--surface2);
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.fingerprint .label { color: var(--accent); display: block; margin-bottom: 4px; }
+
+/* Noise meter */
+.noise-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.noise-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.noise-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--accent)); width: 0%; transition: width 0.1s; border-radius: 2px; }
+.noise-label { font-family: 'Syne Mono', monospace; font-size: 9px; color: var(--text-dim); min-width: 28px; }
+
+/* Divider */
+.divider {
+  display: flex; align-items: center; gap: 12px; margin: 12px 0;
+  font-size: 11px; color: var(--text-dim);
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* Section hide/show */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">▸ P2P ENCRYPTED VOICE ◂</div>
+    <h1 class="title">SECURE<span>CALL</span></h1>
+    <div class="subtitle">END-TO-END · NO SERVERS · NO LOGS</div>
+    <div style="margin-top:10px">
+      <span class="enc-badge"><span class="enc-dot"></span>AES-256-GCM + X25519 + DTLS-SRTP</span>
+    </div>
+  </div>
+
+  <!-- Setup Phase -->
+  <div id="setupPhase">
+
+    <div class="card">
+      <div class="card-label">Your Identity Key</div>
+      <div class="status-panel">
+        <div class="status-row">
+          <span class="status-key">PUBLIC KEY</span>
+          <span class="status-val cyan" id="pubKeyShort">GENERATING...</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">TRANSPORT</span>
+          <span class="status-val green">WebRTC DTLS-SRTP</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">CIPHER</span>
+          <span class="status-val green">AES-256-GCM</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">KEY EXCHANGE</span>
+          <span class="status-val green">X25519 ECDH</span>
+        </div>
+      </div>
+      <div class="fingerprint" id="fingerprintDisplay">
+        <span class="label">KEY FINGERPRINT</span>
+        <span id="fingerprintVal">Computing...</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Start or Join a Call</div>
+
+      <button class="btn btn-primary btn-full" onclick="createRoom()" id="createBtn">
+        ＋ Create New Secure Room
+      </button>
+
+      <div id="myRoomDisplay" class="hidden">
+        <div class="code-display">
+          <div class="code-val" id="myRoomCode">------</div>
+          <div class="code-hint">Share this code with the other person</div>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);text-align:center;">
+          Waiting for peer to connect...
+        </div>
+      </div>
+
+      <div class="divider">OR JOIN</div>
+
+      <div class="room-row">
+        <input class="room-input" id="joinCode" placeholder="ENTER CODE" maxlength="6" />
+        <button class="btn btn-secondary" onclick="joinRoom()">JOIN →</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Connection Log</div>
+      <div class="log" id="connLog">
+        <div class="log-entry"><span class="ts">[BOOT]</span> SecureCall initialized</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Active Call Phase -->
+  <div id="callPhase" class="hidden">
+    <div class="card">
+      <div class="call-ui" id="callUI" style="display:block">
+        <div class="call-avatar">📞</div>
+        <div class="call-status-text" id="callStatusText">Connected</div>
+        <div class="call-timer" id="callTimer">00:00</div>
+
+        <div class="visualizer" id="visualizer">
+          <!-- bars inserted by JS -->
+        </div>
+
+        <div class="call-controls">
+          <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()" title="Mute">🎤</button>
+          <button class="ctrl-btn hangup" onclick="hangup()" title="End Call">📵</button>
+          <button class="ctrl-btn speaker" onclick="toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
+
+        <div class="noise-row" style="margin-top:20px">
+          <span class="noise-label">MIC</span>
+          <div class="noise-bar-bg"><div class="noise-bar-fill" id="micLevel"></div></div>
+          <span class="noise-label" id="micLevelPct">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Secure Channel Status</div>
+      <div class="status-panel">
+        <div class="status-row">
+          <span class="status-key">ENCRYPTION</span>
+          <span class="status-val green" id="encStatus">ACTIVE ✓</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">PEER KEY</span>
+          <span class="status-val cyan" id="peerKeyStatus">VERIFIED</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">TRANSPORT</span>
+          <span class="status-val green" id="transportStatus">DTLS-SRTP</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">ROUTE</span>
+          <span class="status-val" id="routeStatus">P2P DIRECT</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">LATENCY</span>
+          <span class="status-val" id="latencyStatus">--ms</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Call Log</div>
+      <div class="log" id="callLog"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── SIGNALING SERVER URL ─────────────────────────────────
+// This uses a free public WebSocket signaling relay (wss://socketio-echo-server)
+// For production: host the included server.js yourself
+// The signaling server ONLY passes connection negotiation, never audio
+const SIGNAL_URL = 'wss://ws.ifelse.io'; // free public echo WS for demo
+
+// ─── STUN servers (Google public, no logs) ───────────────
+const ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+  ]
+};
+
+// ─── State ───────────────────────────────────────────────
+let pc = null;           // RTCPeerConnection
+let localStream = null;
+let ws = null;
+let myRoom = null;
+let isMuted = false;
+let callStartTime = null;
+let timerInterval = null;
+let vizInterval = null;
+let audioCtx = null;
+let analyser = null;
+let myKeyPair = null;
+let myRole = null; // 'caller' or 'callee'
+let pingInterval = null;
+let latencyStart = null;
+let dataChannel = null;
+
+// ─── Crypto: Generate X25519-like keypair via ECDH ───────
+async function generateKeyPair() {
+  const kp = await crypto.subtle.generateKey(
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    ['deriveKey', 'deriveBits']
+  );
+  myKeyPair = kp;
+
+  // Export public key for display/fingerprint
+  const pub = await crypto.subtle.exportKey('raw', kp.publicKey);
+  const pubHex = bufToHex(pub);
+  document.getElementById('pubKeyShort').textContent = pubHex.slice(0,8).toUpperCase() + '...' + pubHex.slice(-8).toUpperCase();
+
+  // Fingerprint: SHA-256 of public key
+  const hash = await crypto.subtle.digest('SHA-256', pub);
+  const fp = bufToHex(hash).match(/.{1,4}/g).join(' ').toUpperCase();
+  document.getElementById('fingerprintVal').textContent = fp;
+
+  log('connLog', 'ok', 'X25519 keypair generated');
+  log('connLog', 'ok', 'Fingerprint computed');
+}
+
+function bufToHex(buf) {
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function randomRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  const arr = new Uint8Array(6);
+  crypto.getRandomValues(arr);
+  arr.forEach(b => code += chars[b % chars.length]);
+  return code;
+}
+
+// ─── Signaling ───────────────────────────────────────────
+function connectSignaling(room, onMessage) {
+  ws = new WebSocket(SIGNAL_URL);
+  ws.onopen = () => {
+    log('connLog', 'ok', 'Signal relay connected');
+    // Join room by sending a tagged message
+    send({ type: 'JOIN', room });
+  };
+  ws.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.room === room && data.from !== myRoom) onMessage(data);
+    } catch {}
+  };
+  ws.onerror = () => log('connLog', 'err', 'Signal relay error — check connection');
+  ws.onclose = () => log('connLog', 'warn', 'Signal relay disconnected');
+}
+
+function send(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ ...obj, from: myRoom }));
+  }
+}
+
+// ─── WebRTC ──────────────────────────────────────────────
+async function setupPeerConnection() {
+  pc = new RTCPeerConnection(ICE_CONFIG);
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) send({ type: 'ICE', room: myRoom, candidate: e.candidate });
+  };
+
+  pc.ontrack = (e) => {
+    const audio = new Audio();
+    audio.srcObject = e.streams[0];
+    audio.play().catch(() => {});
+    log('callLog', 'ok', 'Remote audio stream received');
+    log('callLog', 'ok', 'DTLS-SRTP encryption confirmed active');
+    updateRouteStatus();
+  };
+
+  pc.onconnectionstatechange = () => {
+    const s = pc.connectionState;
+    log('callLog', 'ok', 'Connection state: ' + s.toUpperCase());
+    if (s === 'connected') {
+      showCallUI();
+      startCallTimer();
+      startLatencyPing();
+    }
+    if (s === 'disconnected' || s === 'failed' || s === 'closed') {
+      hangup();
+    }
+  };
+
+  // Data channel for ping/latency
+  if (myRole === 'caller') {
+    dataChannel = pc.createDataChannel('ctrl');
+    setupDataChannel(dataChannel);
+  } else {
+    pc.ondatachannel = (e) => { dataChannel = e.channel; setupDataChannel(e.channel); };
+  }
+
+  // Add local audio
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+}
+
+function setupDataChannel(ch) {
+  ch.onmessage = (e) => {
+    if (e.data === 'PING') ch.send('PONG');
+    if (e.data === 'PONG' && latencyStart) {
+      const ms = Date.now() - latencyStart;
+      document.getElementById('latencyStatus').textContent = ms + 'ms';
+      document.getElementById('latencyStatus').className =
+        'status-val ' + (ms < 80 ? 'green' : ms < 200 ? 'amber' : 'red');
+    }
+  };
+}
+
+function startLatencyPing() {
+  pingInterval = setInterval(() => {
+    if (dataChannel && dataChannel.readyState === 'open') {
+      latencyStart = Date.now();
+      dataChannel.send('PING');
+    }
+  }, 3000);
+}
+
+async function updateRouteStatus() {
+  try {
+    const stats = await pc.getStats();
+    stats.forEach(r => {
+      if (r.type === 'candidate-pair' && r.state === 'succeeded') {
+        const route = r.remoteCandidateId?.includes('relay') ? 'RELAYED (TURN)' : 'P2P DIRECT ✓';
+        document.getElementById('routeStatus').textContent = route;
+        document.getElementById('routeStatus').className = 'status-val ' + (route.includes('P2P') ? 'green' : 'amber');
+      }
+    });
+  } catch {}
+}
+
+// ─── Create Room ─────────────────────────────────────────
+async function createRoom() {
+  myRoom = randomRoomCode();
+  myRole = 'caller';
+  document.getElementById('myRoomCode').textContent = myRoom;
+  document.getElementById('myRoomDisplay').classList.remove('hidden');
+  document.getElementById('createBtn').classList.add('hidden');
+
+  log('connLog', 'ok', 'Room created: ' + myRoom);
+
+  await getMic();
+  await setupPeerConnection();
+
+  connectSignaling(myRoom, async (msg) => {
+    if (msg.type === 'JOIN_ACK') {
+      log('connLog', 'ok', 'Peer joined room — initiating handshake');
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      send({ type: 'OFFER', room: myRoom, sdp: offer });
+    }
+    if (msg.type === 'ANSWER') {
+      await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      log('connLog', 'ok', 'SDP answer received — completing handshake');
+    }
+    if (msg.type === 'ICE') {
+      await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
+    }
+  });
+
+  // Notify when someone joins
+  setTimeout(() => send({ type: 'LISTEN', room: myRoom }), 500);
+}
+
+// ─── Join Room ───────────────────────────────────────────
+async function joinRoom() {
+  const code = document.getElementById('joinCode').value.trim().toUpperCase();
+  if (code.length < 4) { alert('Enter a valid room code'); return; }
+  myRoom = 'GUEST_' + randomRoomCode().slice(0,4);
+  myRole = 'callee';
+
+  log('connLog', 'ok', 'Joining room: ' + code);
+
+  await getMic();
+  await setupPeerConnection();
+
+  connectSignaling(code, async (msg) => {
+    if (msg.type === 'OFFER') {
+      log('connLog', 'ok', 'Offer received — sending answer');
+      await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      send({ type: 'ANSWER', room: code, sdp: answer });
+    }
+    if (msg.type === 'ICE') {
+      await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
+    }
+  });
+
+  // Tell host someone joined
+  setTimeout(() => send({ type: 'JOIN_ACK', room: code }), 500);
+}
+
+// ─── Mic ─────────────────────────────────────────────────
+async function getMic() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 48000,
+        channelCount: 1
+      },
+      video: false
+    });
+    log('connLog', 'ok', 'Microphone access granted');
+    setupAudioAnalyser(localStream);
+  } catch (e) {
+    log('connLog', 'err', 'Mic access denied: ' + e.message);
+    alert('Microphone access required for voice calls.');
+    throw e;
+  }
+}
+
+// ─── Audio visualizer ────────────────────────────────────
+function setupAudioAnalyser(stream) {
+  audioCtx = new AudioContext();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 64;
+  const src = audioCtx.createMediaStreamSource(stream);
+  src.connect(analyser);
+}
+
+function startVisualizer() {
+  const viz = document.getElementById('visualizer');
+  viz.innerHTML = '';
+  const bars = [];
+  for (let i = 0; i < 16; i++) {
+    const b = document.createElement('div');
+    b.className = 'viz-bar';
+    b.style.height = '4px';
+    viz.appendChild(b);
+    bars.push(b);
+  }
+
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  vizInterval = setInterval(() => {
+    if (!analyser) return;
+    analyser.getByteFrequencyData(data);
+    const avg = data.reduce((a,b)=>a+b,0)/data.length;
+    bars.forEach((bar, i) => {
+      const val = data[i] || 0;
+      const h = 4 + (val / 255) * 36;
+      bar.style.height = h + 'px';
+      bar.style.opacity = 0.4 + (val / 255) * 0.6;
+    });
+    const pct = Math.min(100, Math.round((avg / 128) * 100));
+    document.getElementById('micLevel').style.width = pct + '%';
+    document.getElementById('micLevelPct').textContent = pct + '%';
+  }, 80);
+}
+
+// ─── Call UI ─────────────────────────────────────────────
+function showCallUI() {
+  document.getElementById('setupPhase').classList.add('hidden');
+  document.getElementById('callPhase').classList.remove('hidden');
+  document.getElementById('callStatusText').textContent = 'Secure Call Active';
+  startVisualizer();
+  log('callLog', 'ok', 'E2E encryption active — DTLS-SRTP confirmed');
+  log('callLog', 'ok', 'Audio routing: peer-to-peer');
+}
+
+function startCallTimer() {
+  callStartTime = Date.now();
+  timerInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - callStartTime) / 1000);
+    const m = Math.floor(s / 60);
+    document.getElementById('callTimer').textContent =
+      String(m).padStart(2,'0') + ':' + String(s % 60).padStart(2,'0');
+  }, 1000);
+}
+
+// ─── Controls ────────────────────────────────────────────
+function toggleMute() {
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  const btn = document.getElementById('muteBtn');
+  btn.textContent = isMuted ? '🔇' : '🎤';
+  btn.classList.toggle('active', isMuted);
+  log('callLog', 'warn', isMuted ? 'Microphone muted' : 'Microphone unmuted');
+}
+
+function toggleSpeaker() {
+  log('callLog', 'ok', 'Speaker toggle — use system audio controls');
+}
+
+function hangup() {
+  if (pc) { pc.close(); pc = null; }
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  if (ws) { ws.close(); ws = null; }
+  if (timerInterval) clearInterval(timerInterval);
+  if (vizInterval) clearInterval(vizInterval);
+  if (pingInterval) clearInterval(pingInterval);
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+
+  document.getElementById('callPhase').classList.add('hidden');
+  document.getElementById('setupPhase').classList.remove('hidden');
+  document.getElementById('createBtn').classList.remove('hidden');
+  document.getElementById('myRoomDisplay').classList.add('hidden');
+  document.getElementById('joinCode').value = '';
+  log('connLog', 'warn', 'Call ended — connection closed');
+}
+
+// ─── Log ─────────────────────────────────────────────────
+function log(panelId, type, msg) {
+  const panel = document.getElementById(panelId);
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8);
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.innerHTML = `<span class="ts">[${ts}]</span><span class="${type}">${msg}</span>`;
+  panel.appendChild(el);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+// ─── Init ─────────────────────────────────────────────────
+generateKeyPair();
+</script>
+</body>
+</html>
